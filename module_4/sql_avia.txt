@@ -1,0 +1,314 @@
+		Задание 4.1
+ База данных содержит список аэропортов практически всех крупных городов России. В большинстве городов есть только один аэропорт. Исключение составляет:
+ solution:
+SELECT city
+FROM dst_project.airports
+GROUP BY 1
+HAVING count(airport_code) > 1
+ Answer: Moscow, Ulyanovsk
+
+
+		Задание 4.2
+ Вопрос 1. Таблица рейсов содержит всю информацию о прошлых, текущих и запланированных рейсах. Сколько всего статусов для рейсов определено в таблице? 
+ Solution:
+SELECT count(DISTINCT status)
+FROM dst_project.flights
+ Answer: 6
+
+_________
+ Вопрос 2. Какое количество самолетов находятся в воздухе на момент среза в базе (статус рейса «самолёт уже вылетел и находится в воздухе»).
+ Solution:
+SELECT count(status)
+FROM dst_project.flights
+WHERE status = 'Departed'
+ Answer: 58
+
+_________
+ Вопрос 3. Места определяют схему салона каждой модели. Сколько мест имеет самолет модели 773 (Boeing 777-300)?
+ Solution:
+SELECT count(s.seat_no)
+FROM dst_project.aircrafts a
+JOIN dst_project.seats s ON a.aircraft_code = s.aircraft_code
+WHERE a.aircraft_code = '773'
+ Answer: 402
+
+_________
+ Вопрос 4. Сколько состоявшихся (фактических) рейсов было совершено между 1 апреля 2017 года и 1 сентября 2017 года?
+ Solution:
+SELECT count(flight_id)
+FROM dst_project.flights
+WHERE status != 'Cancelled'
+  AND actual_arrival BETWEEN '2017-04-01' AND '2017-09-01'
+ Answer: 74227
+
+
+	Задание 4.3
+_________
+ Вопрос 1. Сколько всего рейсов было отменено по данным базы?
+ Solution:
+SELECT count(flight_id)
+FROM dst_project.flights
+WHERE status = 'Cancelled'
+ Answer: 437
+
+_________
+ Вопрос 2. Сколько самолетов моделей типа Boeing, Sukhoi Superjet, Airbus находится в базе авиаперевозок?
+ Solution:
+SELECT 'Boeing',
+       count(model)
+FROM dst_project.aircrafts
+WHERE model LIKE '%Boeing%'
+UNION ALL
+SELECT 'Sukhoi Superjet',
+       count(model)
+FROM dst_project.aircrafts
+WHERE model LIKE '%Sukhoi Superjet%'
+UNION ALL
+SELECT 'Airbus',
+       count(model)
+FROM dst_project.aircrafts
+WHERE model LIKE '%Airbus%'
+ Answer: Boeing 3; Sukhoi Superjet 1; Airbus 3
+ 
+_________
+ Вопрос 3. В какой части (частях) света находится больше аэропортов?
+ Solution:
+SELECT 'Australia' AS "Part",
+       count(airport_code)
+FROM Dst_Project.airports
+WHERE timezone like '%Australia%'
+UNION ALL
+SELECT 'Europe, Asia',
+       count(airport_code)
+FROM Dst_Project.airports
+WHERE timezone like '%Europe%'
+  OR timezone like '%Asia%'
+ORDER BY 2 DESC
+LIMIT 1
+ Answer: Europe, Asia
+
+_________
+ Вопрос 4. У какого рейса была самая большая задержка прибытия за все время сбора данных? Введите id рейса (flight_id).
+ Solution:
+SELECT flight_id
+FROM Dst_Project.flights
+WHERE actual_arrival IS NOT NULL
+ORDER BY (actual_arrival - scheduled_arrival) DESC
+LIMIT 1
+ Answer: 157571
+
+
+	Задание 4.4
+_________
+ Вопрос 1. Когда был запланирован самый первый вылет, сохраненный в базе данных?
+ Solution:
+SELECT to_char(to_date(scheduled_departure::text, 'YYYY/MM/DD'), 'DD.MM.YYYY')
+FROM dst_project.flights
+ORDER BY scheduled_departure
+LIMIT 1
+ Answer: 14.08.2016
+
+_________
+ Вопрос 2. Сколько минут составляет запланированное время полета в самом длительном рейсе?
+ Вопрос 3. Между какими аэропортами пролегает самый длительный по времени запланированный рейс?
+ Solution:
+SELECT date_part('hour', scheduled_duration)*60 + date_part('minute', scheduled_duration) AS duration_mm,
+       departure_airport,
+       arrival_airport
+FROM dst_project.flights_v
+ORDER BY duration_mm DESC
+LIMIT 1
+ Answers: 530 minutes. Between airports DME - UUS.
+
+_________
+ Вопрос 4. Сколько составляет средняя дальность полета среди всех самолетов в минутах? Секунды округляются в меньшую сторону (отбрасываются до минут).
+ Solution:
+SELECT date_part('hour', avg(scheduled_duration))*60 + date_part('minute', avg(scheduled_duration))
+FROM dst_project.flights_v
+ Answer: 128
+
+		Задание 4.5
+_________
+ Вопрос 1. Мест какого класса у SU9 больше всего? 
+ Solution:
+SELECT fare_conditions,
+       count(fare_conditions) seat_count
+FROM dst_project.seats
+GROUP BY 1
+ORDER BY seat_count DESC
+LIMIT 1
+ Answer: Economy
+
+_________
+ Вопрос 2. Какую самую минимальную стоимость составило бронирование за всю историю?
+ Solution:
+SELECT min(total_amount)
+FROM dst_project.bookings
+ Answer: 3400
+
+_________
+ Вопрос 3. Какой номер места был у пассажира с id = 4313 788533? 
+ Solution:
+SELECT b.seat_no
+FROM dst_project.tickets t
+JOIN dst_project.boarding_passes b ON t.ticket_no = b.ticket_no
+WHERE t.passenger_id = '4313 788533'
+ Answer: 2A
+
+		Задание 5.1
+_________
+ Вопрос 1. Сколько рейсов прибыло в Анапу за 2017 год?
+ Solution:
+SELECT count(flight_id)
+FROM dst_project.flights_v
+WHERE arrival_city = 'Анапа'
+  AND date_part('year', actual_arrival) = 2017
+ Answer: 486
+
+_________
+Вопрос 2. Сколько рейсов из Анапы вылетело зимой 2017 года?
+ Solution:
+SELECT count(flight_id)
+FROM dst_project.flights_v
+WHERE departure_city = 'Анапа'
+  AND date_part('year', actual_departure) = 2017
+  AND date_part('month', actual_departure)::int/3%4 = 0
+ Answer: 197
+
+_________
+ Вопрос 3. Посчитайте количество отмененных рейсов из Анапы за все время.
+ Solution:
+SELECT count(flight_id)
+FROM dst_project.flights_v
+WHERE departure_city = 'Анапа'
+  AND status = 'Cancelled'
+ Answer: 1
+ 
+_________
+ Вопрос 4. Сколько рейсов из Анапы не летают в Москву?
+ Solution:
+SELECT count(flight_id)
+FROM dst_project.flights_v
+WHERE departure_city = 'Анапа'
+  AND arrival_city != 'Москва' Answer: 453
+
+_________
+ Вопрос 5. Какая модель самолета летящего на рейсах из Анапы имеет больше всего мест?
+ Solution:
+SELECT a.model,
+       count(s.seat_no)
+FROM dst_project.flights_v fv
+LEFT JOIN dst_project.aircrafts a ON fv.aircraft_code = a.aircraft_code
+LEFT JOIN dst_project.seats s ON fv.aircraft_code = s.aircraft_code
+WHERE fv.departure_city = 'Анапа'
+GROUP BY 1
+ORDER BY COUNT DESC
+LIMIT 1
+ Answer: Boeing 737-300
+
+___________________________________________________________
+
+
+			ЗАДАЧА.
+выяснить, от каких самых малоприбыльных рейсов из Анапы мы можем отказаться в зимнее время. 
+ 
+ Для рейся из Анапы посмотрим аэропорты прибытия, типы самолётов и количество в них мест.
+SELECT f.arrival_airport,
+       f.aircraft_code,
+       count(DISTINCT s.seat_no) AS capacity
+FROM dst_project.flights f,
+     dst_project.ticket_flights t,
+     dst_project.seats s
+WHERE f.departure_airport = 'AAQ'
+  AND f.status not in ('Cancelled')
+  AND f.flight_id = t.flight_id
+  AND f.aircraft_code = s.aircraft_code
+GROUP BY 1, 2
+ Answer: 
+arrival_airport		aircraft_code		capacity
+	EGO					SU9					97
+	SVO 				733					130
+
+Использую данные о расстоянии меу аэропортами
+ Airports	Distance.
+AAQ - EGO:   630 km
+AAQ - SVO: 	 1220 km
+
+ Для каждого направления нахожу средние значения: 
+Сумма всех билетов, количество пассажиров, RPK, PFL
+  Notes.
+ RPK (Revenue Passenger Kilometers) measure an airline’s demand for their service and are calculated by multiplying the number of paying passengers by the distance traveled.
+ PLF (passenger load factor) measures how much of an airline’s passenger carrying capacity is used. 
+______
+SELECT 'EGO' as arrival_airport,
+    count(t.ticket_no) / count(DISTINCT f.flight_id) as avg_passenger, 
+    sum(amount) / count(DISTINCT f.flight_id) as avg_ticket_profit,
+    count(t.ticket_no)*630 / count(DISTINCT f.flight_id) as "avg_RPK"
+FROM dst_project.flights f, dst_project.ticket_flights t
+WHERE f.departure_airport = 'AAQ' AND f.arrival_airport = 'EGO'
+  AND (date_trunc('month', f.scheduled_departure) in ('2017-01-01', '2017-02-01', '2017-12-01'))
+  AND f.status not in ('Cancelled') AND f.flight_id = t.flight_id
+union all
+SELECT 'SVO' as arrival_airport,
+    count(t.ticket_no) / count(DISTINCT f.flight_id) as avg_passenger, 
+    sum(amount) / count(DISTINCT f.flight_id) as avg_ticket_profit,
+    count(t.ticket_no)*1220 / count(DISTINCT f.flight_id) as "avg_RPK"
+FROM dst_project.flights f, dst_project.ticket_flights t
+WHERE f.departure_airport = 'AAQ' AND f.arrival_airport = 'SVO'
+  AND (date_trunc('month', f.scheduled_departure) in ('2017-01-01', '2017-02-01', '2017-12-01'))
+  AND f.status not in ('Cancelled') AND f.flight_id = t.flight_id
+______
+ Answer
+arrival_airport		avg_passenger	avg_ticket_profit	avg_RPK		avg_PLF
+	EGO					90				710435.59		 56817		 92.98
+	SVO					113				1642576.27		 138004	 	 87.01
+
+
+ Использую эти значения, чтобы отфильтровать менее прибыльные рейсы.
+__________
+SELECT
+    f.flight_id,
+    f.departure_city,
+    f.arrival_city,
+    f.scheduled_departure,
+    a.model,
+    date_part('hour', f.scheduled_duration)*60 + date_part('minute', f.scheduled_duration) as duration_mm,
+    count(t.ticket_no) passengers,
+    sum(t.amount) total_amount,
+    count(t.ticket_no)*630 as "RPK",
+	count(t.ticket_no) / 97.0 * 100 as "PLF"
+FROM 
+	dst_project.flights_v f, dst_project.ticket_flights t, dst_project.aircrafts a
+WHERE f.departure_airport = 'AAQ' AND f.arrival_airport = 'EGO'
+    AND (date_trunc('month', f.scheduled_departure) in ('2017-01-01','2017-02-01', '2017-12-01'))
+    AND f.status not in ('Cancelled')
+    AND f.flight_id = t.flight_id AND f.aircraft_code = a.aircraft_code
+group by 1,2,3,4,5,6
+having     
+    sum(t.amount) < 710435.59
+    AND count(t.ticket_no)*630 < 56817
+    AND count(t.ticket_no) / 97.0 * 100 < 92.98
+union all
+SELECT
+    f.flight_id,
+    f.departure_city,
+    f.arrival_city,
+    f.scheduled_departure,
+    a.model,
+    date_part('hour', f.scheduled_duration)*60 + date_part('minute', f.scheduled_duration) as duration_mm,
+    count(t.ticket_no) passengers,
+    sum(t.amount) total_amount,
+    count(t.ticket_no)*1220 as "RPK",
+    count(t.ticket_no) / 130.0 * 100 as "PLF"
+FROM 
+	dst_project.flights_v f, dst_project.ticket_flights t, dst_project.aircrafts a
+WHERE f.departure_airport = 'AAQ' AND f.arrival_airport = 'SVO'
+    AND (date_trunc('month', f.scheduled_departure) in ('2017-01-01','2017-02-01', '2017-12-01'))
+    AND f.status not in ('Cancelled')
+    AND f.flight_id = t.flight_id AND f.aircraft_code = a.aircraft_code
+group by 1,2,3,4,5,6
+having
+    sum(t.amount) < 1642576.27
+    AND count(t.ticket_no)*1220 < 138004
+    AND count(t.ticket_no) / 130.0 * 100 < 87.01
+order by total_amount, "RPK", "PLF"
