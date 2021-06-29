@@ -298,7 +298,7 @@ typing-extensions==3.7.4.3
 ujson==1.35
 unicodecsv==0.14.1
 Unidecode==1.2.0
-urllib3==1.25.8
+urllib3==1.26.5
 virtualenv==20.4.7
 wasabi==0.8.2
 watchdog==0.10.2
